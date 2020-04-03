@@ -1,6 +1,8 @@
 const properties = require('./json/properties.json');
 const users = require('./json/users.json');
-const { Pool } = require('pg')
+const {
+  Pool
+} = require('pg')
 const pool = new Pool({
   user: 'vagrant',
   password: '123',
@@ -15,22 +17,22 @@ const pool = new Pool({
  * @param {String} email The email of the user.
  * @return {Promise<{}>} A promise to the user.
  */
-const getUserWithEmail = function(email) {
+const getUserWithEmail = function (email) {
   const queryString = `
   SELECT * 
   FROM users
   WHERE email = $1;
   `;
-  
+
   return pool
     .query(queryString, [email])
     .then(res => {
       if (res.rows.length === 0) {
         return null
-       }
-        
-       return res.rows[0];
-       })
+      }
+
+      return res.rows[0];
+    })
     .catch(e => console.error('query error', e.stack));
 }
 exports.getUserWithEmail = getUserWithEmail;
@@ -40,22 +42,22 @@ exports.getUserWithEmail = getUserWithEmail;
  * @param {string} id The id of the user.
  * @return {Promise<{}>} A promise to the user.
  */
-const getUserWithId = function(id) {
+const getUserWithId = function (id) {
   const queryString = `
   SELECT * 
   FROM users
   WHERE id = $1;
   `;
-  
+
   return pool
     .query(queryString, [id])
     .then(res => {
       if (res.rows.length === 0) {
         return null;
-       }
-         
-       return res.rows[0];
-      })
+      }
+
+      return res.rows[0];
+    })
     .catch(e => console.error('query error', e.stack));
 }
 exports.getUserWithId = getUserWithId;
@@ -66,7 +68,7 @@ exports.getUserWithId = getUserWithId;
  * @param {{name: string, password: string, email: string}} user
  * @return {Promise<{}>} A promise to the user.
  */
-const addUser =  function(user) {
+const addUser = function (user) {
   const name = user.name;
   const email = user.email;
   const password = user.password;
@@ -76,7 +78,7 @@ const addUser =  function(user) {
   VALUES ($1, $2, $3)
   RETURNING *;
   `;
-  
+
   return pool
     .query(queryString, [name, email, password])
     .then(res => res.rows)
@@ -91,7 +93,7 @@ exports.addUser = addUser;
  * @param {string} guest_id The id of the user.
  * @return {Promise<[{}]>} A promise to the reservations.
  */
-const getAllReservations = function(guest_id, limit = 10) {
+const getAllReservations = function (guest_id, limit = 10) {
   const queryString = `
     SELECT properties.*, reservations.*, avg(rating) as average_rating
     FROM reservations
@@ -119,7 +121,7 @@ exports.getAllReservations = getAllReservations;
  * @param {*} limit The number of results to return.
  * @return {Promise<[{}]>}  A promise to the properties.
  */
-const getAllProperties = function(options, limit = 10) {
+const getAllProperties = function (options, limit = 10) {
   const queryParams = [];
   let queryString = `
   SELECT properties.*, avg(property_reviews.rating) as average_rating
@@ -149,26 +151,29 @@ const getAllProperties = function(options, limit = 10) {
     if (queryParams.length === 2) {
       queryString += `WHERE cost_per_night > $${queryParams.length - 1} AND cost_per_night < $${queryParams.length}`
     } else {
-      queryString += ` AND cost_per_night > $${queryParams.length - 1} AND cost_per_night < $${queryParams.length}`
+      queryString += `
+        AND cost_per_night > $${queryParams.length - 1} 
+        AND cost_per_night < $${queryParams.length}
+      `
     }
   }
+
+  queryString += `
+  GROUP BY properties.id
+  `;
 
   if (options.minimum_rating) {
     queryParams.push(options.minimum_rating);
 
-    // if thre are no other queryParam, add WHERE and grab min rating
-    if (queryParams.length === 1) {
-      queryString += `WHERE rating >= $${queryParams.length}`
-    } else {
-      queryString += ` AND rating >= $${queryParams.length}`
-    }
+    queryString += `
+  HAVING avg(property_reviews.rating) >= $${queryParams.length}
+    `;
   }
 
   queryParams.push(limit);
   queryString += `
-    GROUP BY properties.id
-    ORDER BY cost_per_night
-    LIMIT $${queryParams.length};
+  ORDER BY cost_per_night
+  LIMIT $${queryParams.length};
   `;
 
   console.log(queryString, queryParams);
@@ -186,7 +191,7 @@ exports.getAllProperties = getAllProperties;
  * @param {{}} property An object containing all of the property details.
  * @return {Promise<{}>} A promise to the property.
  */
-const addProperty = function(property) {
+const addProperty = function (property) {
   const propertyId = Object.keys(properties).length + 1;
   property.id = propertyId;
   properties[propertyId] = property;
@@ -195,7 +200,7 @@ const addProperty = function(property) {
 exports.addProperty = addProperty;
 
 pool.connect((err) => {
-  if(err) return console.log(err);
+  if (err) return console.log(err);
 
   console.log('connected');
 })
