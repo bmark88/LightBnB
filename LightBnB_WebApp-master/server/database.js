@@ -1,14 +1,6 @@
 const properties = require('./json/properties.json');
 const users = require('./json/users.json');
-const {
-  Pool
-} = require('pg')
-const pool = new Pool({
-  user: 'vagrant',
-  password: '123',
-  host: 'localhost',
-  database: 'lightbnb'
-});
+const db = require('../db/index.js');
 
 /// Users
 
@@ -24,8 +16,7 @@ const getUserWithEmail = function (email) {
   WHERE email = $1;
   `;
 
-  return pool
-    .query(queryString, [email])
+  return db.query(queryString, [email])
     .then(res => {
       if (res.rows.length === 0) {
         return null
@@ -49,8 +40,7 @@ const getUserWithId = function (id) {
   WHERE id = $1;
   `;
 
-  return pool
-    .query(queryString, [id])
+  return db.query(queryString, [id])
     .then(res => {
       if (res.rows.length === 0) {
         return null;
@@ -79,8 +69,7 @@ const addUser = function (user) {
   RETURNING *;
   `;
 
-  return pool
-    .query(queryString, [name, email, password])
+  return db.query(queryString, [name, email, password])
     .then(res => res.rows)
     .catch(e => console.error('query error', e.stack));
 }
@@ -106,8 +95,7 @@ const getAllReservations = function (guest_id, limit = 10) {
     LIMIT $2;
   `;
 
-  return pool
-    .query(queryString, [guest_id, limit])
+  return db.query(queryString, [guest_id, limit])
     .then(res => res.rows)
     .catch(e => console.error('query error', e.stack));
 }
@@ -178,8 +166,7 @@ const getAllProperties = function (options, limit = 10) {
 
   console.log(queryString, queryParams);
 
-  return pool
-    .query(queryString, queryParams)
+  return db.query(queryString, queryParams)
     .then(res => res.rows)
     .catch(e => console.error('query error', e.stack));
 };
@@ -228,15 +215,8 @@ const addProperty = function (property) {
     property.number_of_bedrooms
   ];
 
-  return pool
-          .query(queryString, queryParams)
+  return db.query(queryString, queryParams)
           .then(res => res.rows[0])
           .catch(e => console.error('query string', e.stack));
 };
 exports.addProperty = addProperty;
-
-pool.connect((err) => {
-  if (err) return console.log(err);
-
-  console.log('connected');
-})
